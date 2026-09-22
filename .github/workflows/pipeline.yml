@@ -1,0 +1,52 @@
+name: TSE 2026 ELT
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 8 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      TSE_DUCKDB_PATH: work/tse.duckdb
+      KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+      KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+      KAGGLE_DATASET_ID: ${{ vars.KAGGLE_DATASET_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: pip install -r requirements.txt
+      - name: Unit tests
+        run: python -m pytest -q
+      - name: Download and verify TSE source
+        run: python -m pipeline.ingest
+      - name: Build and test dbt models
+        run: dbt build --project-dir . --profiles-dir .
+      - name: Export and validate with Great Expectations
+        run: python -m pipeline.export
+      - name: Record metrics
+        run: |
+          python -c "import json; m=json.load(open('output/metrics.json')); print('sources=' + str(m['source_count'])); print('models=' + str(m['model_count'])); print('rows_published=' + str(m['rows_published'])); print('expectations=' + str(m['expectations_passed']) + '/' + str(m['expectations_total']))" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tse-2026-clean-dataset
+          path: output/
+          retention-days: 7
+      - name: Publish to Kaggle
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          if [ -z "$KAGGLE_USERNAME" ] || [ -z "$KAGGLE_KEY" ] || [ -z "$KAGGLE_DATASET_ID" ]; then
+            echo "Kaggle credentials or dataset ID missing."
+            exit 1
+          fi
+          python -m pipeline.publish --dataset-id "$KAGGLE_DATASET_ID" --public

@@ -1,0 +1,13 @@
+version: 2
+models:
+  - name: candidaturas_limpas
+    description: "Candidaturas 2026, deduplicadas e sem CPF, título eleitoral ou e-mail."
+    columns:
+      - name: id_candidato
+        data_tests: [not_null, unique]
+      - name: ano_eleicao
+        data_tests: [not_null]
+      - name: uf
+        data_tests: [not_null]
+      - name: cargo
+        data_tests: [not_null]

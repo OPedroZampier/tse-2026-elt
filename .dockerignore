@@ -1,0 +1,10 @@
+.git
+.venv
+.pytest_cache
+__pycache__
+work
+work-live
+output
+target
+logs
+*.duckdb

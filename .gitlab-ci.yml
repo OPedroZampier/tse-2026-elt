@@ -1,0 +1,33 @@
+image: python:3.11-slim
+
+stages: [test, build]
+
+variables:
+  TSE_DUCKDB_PATH: work/tse.duckdb
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths: [.cache/pip]
+
+test:
+  stage: test
+  script:
+    - pip install -r requirements.txt
+    - python -m pytest -q
+
+build:
+  stage: build
+  script:
+    - pip install -r requirements.txt
+    - python -m pipeline.ingest
+    - dbt build --project-dir . --profiles-dir .
+    - python -m pipeline.export
+    - |
+      if [ "$CI_PIPELINE_SOURCE" = "schedule" ]; then
+        test -n "$KAGGLE_USERNAME" && test -n "$KAGGLE_KEY" && test -n "$KAGGLE_DATASET_ID"
+        python -m pipeline.publish --dataset-id "$KAGGLE_DATASET_ID" --public
+      fi
+  artifacts:
+    when: always
+    paths: [output/]
+    expire_in: 7 days

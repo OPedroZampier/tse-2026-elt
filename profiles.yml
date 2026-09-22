@@ -1,0 +1,7 @@
+tse_2026_elt:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('TSE_DUCKDB_PATH', 'work/tse.duckdb') }}"
+      threads: 2

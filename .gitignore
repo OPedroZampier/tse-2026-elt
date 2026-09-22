@@ -1,0 +1,14 @@
+__pycache__/
+.pytest_cache/
+.venv/
+target/
+logs/
+work/
+work-live/
+output/
+*.duckdb
+*.duckdb.wal
+.env
+.kaggle/
+.user.yml
+!.gitkeep
