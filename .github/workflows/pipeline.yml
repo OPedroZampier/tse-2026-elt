@@ -3,6 +3,15 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      kaggle_publish_mode:
+        description: "Primeira publicação: create; após a criação: auto"
+        type: choice
+        options:
+          - auto
+          - create
+        default: auto
+        required: true
   schedule:
     - cron: "17 8 * * 1"
 
@@ -49,4 +58,8 @@ jobs:
             echo "Kaggle credentials or dataset ID missing."
             exit 1
           fi
-          python -m pipeline.publish --dataset-id "$KAGGLE_DATASET_ID" --public
+          PUBLISH_ARGS=(--dataset-id "$KAGGLE_DATASET_ID" --public)
+          if [ "${{ inputs.kaggle_publish_mode }}" = "create" ]; then
+            PUBLISH_ARGS+=(--create)
+          fi
+          python -m pipeline.publish "${PUBLISH_ARGS[@]}"
