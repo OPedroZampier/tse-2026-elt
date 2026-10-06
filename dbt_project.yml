@@ -4,6 +4,7 @@ config-version: 2
 profile: tse_2026_elt
 model-paths: ["dbt/models"]
 macro-paths: ["dbt/macros"]
+test-paths: ["dbt/tests"]
 target-path: "target"
 clean-targets: ["target", "dbt_packages"]
 models:

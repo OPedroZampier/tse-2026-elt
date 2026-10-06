@@ -22,8 +22,8 @@ def publish(
     metadata = {
         "title": "Brazil Elections 2026 - Clean TSE Data",
         "id": dataset_id,
-        "subtitle": "Candidacies, voters, assets, parties and campaign finance",
-        "description": "Clean, documented 2026 election tables derived from Brazil's TSE open data. Includes candidacies, assets, electorate aggregates, party accounts, campaign finance and registered polls. Personal identifiers are excluded. Data is provisional. Source: https://dadosabertos.tse.jus.br/.",
+        "subtitle": "First-round results, candidacies, voters and campaign finance",
+        "description": "Clean 2026 TSE tables: candidacies, assets, electorate aggregates, party accounts, campaign finance, registered polls and first-round results. Results cover candidates, party votes, turnout, electoral quotas and seats elected by party quota (QP) or averages, by state and abroad where applicable. Brazil totals are reconciliation controls, not duplicate published rows. Filter one office before aggregating votes; use presidential records for turnout. QP status alone does not identify a candidate who pulled another into office. CPF, CNPJ, email and voter identifiers are excluded. Each source is a dated snapshot and may change. First-round provenance and checks are recorded in metrics.json. Sources: https://dadosabertos.tse.jus.br/ and https://resultados.tse.jus.br/.",
         "licenses": [{"name": "CC-BY-4.0"}],
     }
     (output / "dataset-metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")

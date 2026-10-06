@@ -1,5 +1,24 @@
 version: 2
 models:
+  - name: resultados_primeiro_turno
+    description: "Official first-round totals; duplicate BR aggregate excluded."
+    columns:
+      - name: chave_resultado
+        data_tests: [not_null, unique]
+  - name: votos_candidatos_primeiro_turno
+    description: "Official candidate votes and result status by territory and office."
+    columns:
+      - name: id_candidato
+        data_tests: [not_null]
+  - name: votos_partidos_primeiro_turno
+    description: "Party nominal, legend and annulled votes."
+  - name: quociente_eleitoral_primeiro_turno
+    description: "Electoral quota (QE) and seats for proportional offices."
+    columns:
+      - name: chave_resultado
+        data_tests: [not_null, unique]
+  - name: eleitos_qp_media_primeiro_turno
+    description: "Proportional seats elected by party quota (QP) or averages."
   - name: candidaturas_limpas
     description: "Candidaturas 2026, deduplicadas e sem CPF, título eleitoral ou e-mail."
     columns:

@@ -13,7 +13,23 @@ Catálogo consultado no Portal de Dados Abertos do TSE em 22/09/2026. As URLs co
 | Contas eleitorais 2026 | Receitas, doador originário e despesas de órgãos partidários | `campanha_partidos_receitas`, `campanha_partidos_doadores_originarios`, `campanha_partidos_despesas`, `campanha_partidos_pagamentos` |
 | [Pesquisas eleitorais 2026](https://dadosabertos.tse.jus.br/dataset/pesquisas-eleitorais-2026) | Pesquisas registradas | `pesquisas_eleitorais` |
 
-## Critérios
+## Resultados do primeiro turno (2026)
+
+Coleta em `pipeline/results.py`: 137 JSONs oficiais de `https://resultados.tse.jus.br/oficial/ele2026/`. Eleição 6257 para Presidente; 6259 para Governador, Senador, Deputado Federal e Estadual/Distrital. Turno 1, documentos oficiais (`f=o`). O consolidado BR de Presidente é usado apenas na reconciliação.
+
+| Produto | Conteúdo e unidade |
+| --- | --- |
+| `resultados_primeiro_turno` | Uma linha por UF/cargo, incluindo exterior para Presidente: votos, comparecimento, abstenções e seções totalizadas. |
+| `votos_candidatos_primeiro_turno` | Uma linha por abrangência/cargo/candidato: votos, destino dos votos, percentual oficial e resultado, incluindo eleitos e segundo turno. |
+| `votos_partidos_primeiro_turno` | Uma linha por abrangência/cargo/partido: votos nominais, de legenda e anulados conforme o TSE. |
+| `quociente_eleitoral_primeiro_turno` | QE e vagas por UF/cargo proporcional. |
+| `eleitos_qp_media_primeiro_turno` | Quantidade de eleitos proporcionais por UF/cargo/partido/classificação oficial QP ou média. |
+
+Os IDs de candidatura e números de partido/candidato são texto nos modelos de resultados. Datas de geração são datas; percentuais são frações (0 a 1). Os votos devem ser agregados por cargo. Comparecimento e abstenções devem usar o recorte Presidente para evitar contar o mesmo eleitor em vários cargos. Os totais de partido e candidato preservam a definição do TSE, inclusive destino de votos, e não devem ser tratados como equivalentes sem esse filtro. A classificação QP não prova uma relação entre um "puxador" específico e outro eleito. Resultados podem ser atualizados pelo TSE.
+
+O manifesto `first_round_results` em `metrics.json` documenta a extração e valida BR = UFs + exterior, votos válidos = nominais + legenda, total de votos e comparecimento + abstenções. Falha de coleta, cobertura ou reconciliação interrompe o build antes da publicação.
+
+## Critérios gerais
 
 - Preferem-se os CSVs nacionais `BRASIL` para evitar duplicar registros ao juntar arquivos por UF.
 - Cada fonte é verificada por presença do arquivo esperado, cabeçalho e SHA-256. CSVs são convertidos de Latin-1 para UTF-8 antes do dbt.

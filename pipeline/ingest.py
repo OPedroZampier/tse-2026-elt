@@ -107,12 +107,13 @@ def extract(source: Source, archive_path: Path, raw_root: Path) -> dict:
     return {"source": source.key, "url": source.url, "archive_bytes": archive_path.stat().st_size, "files": files}
 
 
-def ingest(workdir: Path, archive_dir: Path | None = None, keys: list[str] | None = None) -> dict:
+def ingest(workdir: Path, archive_dir: Path | None = None, keys: list[str] | None = None, refresh: bool = False) -> dict:
     selected = [BY_KEY[key] for key in keys] if keys else SOURCES
     manifest = {"generated_at_utc": datetime.now(timezone.utc).isoformat(), "sources": []}
     for source in selected:
         archive_path = (archive_dir / source.archive_name) if archive_dir and (archive_dir / source.archive_name).exists() else workdir / "zips" / source.archive_name
-        if not archive_path.exists():
+        supplied = archive_dir is not None and (archive_dir / source.archive_name).exists()
+        if not archive_path.exists() or (refresh and not supplied):
             print(f"Baixando {source.key}: {source.url}", flush=True)
             fetch(source, archive_path)
         print(f"Extraindo {source.key}", flush=True)
@@ -127,8 +128,9 @@ def main() -> int:
     parser.add_argument("--workdir", type=Path, default=Path("work"))
     parser.add_argument("--archive-dir", type=Path)
     parser.add_argument("--only", nargs="+", choices=sorted(BY_KEY))
+    parser.add_argument("--refresh", action="store_true", help="Refresh cached archives; explicitly supplied archive-dir remains offline")
     args = parser.parse_args()
-    manifest = ingest(args.workdir, args.archive_dir, args.only)
+    manifest = ingest(args.workdir, args.archive_dir, args.only, args.refresh)
     print(f"Fontes validadas: {len(manifest['sources'])}", flush=True)
     return 0
 

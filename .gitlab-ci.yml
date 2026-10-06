@@ -19,7 +19,8 @@ build:
   stage: build
   script:
     - pip install -r requirements.txt
-    - python -m pipeline.ingest
+    - python -m pipeline.ingest --refresh
+    - python -m pipeline.results
     - dbt build --project-dir . --profiles-dir .
     - python -m pipeline.export
     - |

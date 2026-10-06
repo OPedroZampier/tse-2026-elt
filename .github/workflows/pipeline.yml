@@ -38,7 +38,9 @@ jobs:
       - name: Unit tests
         run: python -m pytest -q
       - name: Download and verify TSE source
-        run: python -m pipeline.ingest
+        run: python -m pipeline.ingest --refresh
+      - name: Download and reconcile first-round results
+        run: python -m pipeline.results
       - name: Build and test dbt models
         run: dbt build --project-dir . --profiles-dir .
       - name: Export and validate with Great Expectations

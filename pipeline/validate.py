@@ -42,6 +42,24 @@ def validate_dataset(csv_path: Path, model_name: str = "candidaturas_limpas") ->
             gx.expectations.ExpectColumnValuesToNotBeNull(column="cargo"),
             gx.expectations.ExpectColumnValuesToBeBetween(column="ano_eleicao", min_value=2026, max_value=2026),
         ])
+    if model_name.endswith("primeiro_turno"):
+        expectations.extend([
+            gx.expectations.ExpectColumnValuesToBeBetween(column="turno", min_value=1, max_value=1),
+            gx.expectations.ExpectColumnValuesToBeBetween(column="ano_eleicao", min_value=2026, max_value=2026),
+            gx.expectations.ExpectColumnValuesToNotBeNull(column="uf"),
+        ])
+        if "BR" in set(frame["uf"]):
+            raise ValueError("Duplicate national aggregate must not be published")
+        for column in ("votos", "votos_validos", "votos_nominais", "votos_legenda", "comparecimento",
+                       "abstencoes", "quociente_eleitoral", "vagas", "quantidade"):
+            if column in columns:
+                expectations.append(gx.expectations.ExpectColumnValuesToBeBetween(column=column, min_value=0))
+        if model_name == "resultados_primeiro_turno":
+            expectations.append(gx.expectations.ExpectColumnValuesToBeUnique(column="chave_resultado"))
+        if model_name == "votos_candidatos_primeiro_turno":
+            if frame.duplicated(["chave_resultado", "id_candidato"]).any():
+                raise ValueError("Duplicate candidate/territory/office key")
+            expectations.append(gx.expectations.ExpectColumnValuesToBeBetween(column="percentual_oficial", min_value=0, max_value=1))
     results = [batch.validate(item) for item in expectations]
     summary = {
         "rows_published": int(len(frame)),

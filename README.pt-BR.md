@@ -8,7 +8,13 @@ Este repositório transforma os dados abertos de 2026 do Tribunal Superior Eleit
 
 `TSE CDN → ZIP/CSV bruto → DuckDB + dbt → Great Expectations → CSV/Parquet → Kaggle`
 
-O catálogo em [pipeline/sources.py](pipeline/sources.py) usa 14 pacotes oficiais. Os modelos em [dbt/models](dbt/models) geram 22 tabelas sobre candidaturas, bens declarados, eleitorado, contas partidárias, financiamento de campanha e pesquisas eleitorais registradas. O [mapa das fontes](docs/SOURCES.md) relaciona cada entrada ao seu produto.
+O catálogo usa 14 pacotes oficiais e 137 documentos JSON de resultados do primeiro turno. Os modelos geram 27 tabelas, mantendo as bases anteriores e acrescentando resultados eleitorais. O [mapa das fontes](docs/SOURCES.md) relaciona cada entrada ao seu produto.
+
+## Resultados do primeiro turno
+
+As cinco tabelas novas incluem totais por UF/cargo, votos e situação dos candidatos, votos partidários, quociente eleitoral (QE) e eleitos proporcionais por quociente partidário (QP) ou média. Presidente inclui 27 UFs e exterior (`ZZ`); os demais cargos principais usam as UFs, com Deputado Distrital no DF. Não há detalhe por município ou seção.
+
+O consolidado BR é reconciliado com UFs e exterior e excluído das tabelas públicas para evitar duplicação. Selecione um cargo antes de somar votos; para participação, use Presidente, pois o mesmo eleitor vota em vários cargos. A classificação por QP não identifica, sozinha, quem foi "puxado" por outra candidatura. O campo `first_round_results` de `metrics.json` registra URLs, hashes, datas, cobertura e reconciliação. `--refresh` atualiza ZIPs em cache; `--archive-dir` reaproveita os arquivos fornecidos explicitamente.
 
 ## Executar localmente
 
@@ -18,7 +24,8 @@ Use Python 3.11 na raiz do repositório:
 python -m venv .venv
 python -m pip install -r requirements.txt
 python -m pytest -q
-python -m pipeline.ingest
+python -m pipeline.ingest --refresh
+python -m pipeline.results
 dbt build --project-dir . --profiles-dir .
 python -m pipeline.export
 ```

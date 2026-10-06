@@ -23,6 +23,8 @@ def main() -> None:
     unexpected = {path.name for path in args.output.iterdir()} - expected_names
     if unexpected:
         raise ValueError(f"Arquivos inesperados na pasta de publicação: {sorted(unexpected)}")
+    # A failed rebuild must never leave an older successful publication gate.
+    (args.output / "metrics.json").write_text(json.dumps({"passed": False, "status": "building"}), encoding="utf-8")
     summaries = {}
     with duckdb.connect(str(args.database), read_only=True) as con:
         for model in models:
@@ -52,6 +54,15 @@ def main() -> None:
             file.get("physical_data_lines", 0) for item in source["sources"] for file in item["files"]
         )
         metrics["sources"] = source["sources"]
+    results_manifest = args.database.parent / "results-sources.json"
+    if any(model.endswith("primeiro_turno") for model in models) and not results_manifest.exists():
+        raise ValueError("Missing first-round provenance: run python -m pipeline.results")
+    if results_manifest.exists():
+        results = json.loads(results_manifest.read_text(encoding="utf-8"))
+        if not results["reconciliation_passed"] or results["downloaded_documents"] != results["expected_documents"]:
+            raise ValueError("First-round source validation failed")
+        metrics["first_round_results"] = results
+        metrics["result_source_documents"] = results["downloaded_documents"]
     (args.output / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps({
         "source_count": metrics.get("source_count"),

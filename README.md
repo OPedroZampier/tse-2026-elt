@@ -4,7 +4,13 @@
 
 This repository turns the Brazilian Superior Electoral Court's 2026 open data into analysis-ready CSV and Parquet files. A scheduled pipeline downloads the official archives, checks their contents, builds tables in DuckDB with dbt, and validates the exports with Great Expectations.
 
-The current catalog has 14 official archives and produces 22 tables across candidacies, declared assets, the electorate, party accounts, campaign finance, and registered electoral polls. The [source map](docs/SOURCES.md) names every input and output.
+The catalog has 14 official archives plus 137 first-round result JSON documents and produces 27 tables across candidacies, declared assets, the electorate, party accounts, campaign finance, registered polls and election results. The [source map](docs/SOURCES.md) names every input and output.
+
+## First-round results
+
+Five added tables cover official totals by territory/office, candidate votes and outcome, party votes, electoral quotas (QE), and proportional seats elected by party quota (QP) or averages. Presidential results include 27 states and abroad (`ZZ`); other main offices cover the states, using District Deputy in DF. These tables do not include municipality or polling-section detail.
+
+The Brazil aggregate is checked against states plus abroad, then excluded from public tables to avoid double counting. Filter one office before summing votes. For turnout, use presidential records: the same elector participates in several contests. QP means *quociente partidário*; its official status alone does not identify who "pulled" another candidate into office. The `first_round_results` section of `metrics.json` records URLs, hashes, timestamps, coverage and reconciliation. Use `--refresh` to update cached ZIPs; an explicit `--archive-dir` continues to reuse supplied offline archives.
 
 ## Run it locally
 
@@ -15,7 +21,8 @@ python -m venv .venv
 # Activate .venv for your shell, then:
 python -m pip install -r requirements.txt
 python -m pytest -q
-python -m pipeline.ingest
+python -m pipeline.ingest --refresh
+python -m pipeline.results
 dbt build --project-dir . --profiles-dir .
 python -m pipeline.export
 ```
