@@ -31,6 +31,12 @@ O manifesto `first_round_results` em `metrics.json` documenta a extração e val
 
 ## Critérios gerais
 
+### Resultados do segundo turno
+
+`pipeline/runoff.py` consulta as eleições oficiais 6258 (Presidente) e 6260 (Governador), validando `t=2`, `f=o`, cargo, UF e totalização concluída. A cobertura presidencial inclui BR para controle, as 27 UFs e ZZ. As UFs com disputa para governador são obtidas dos resultados finalizados do primeiro turno. No snapshot de 29/10/2026, foram 35 documentos, dos quais um é o controle BR.
+
+As tabelas `resultados_segundo_turno`, `votos_candidatos_segundo_turno` e `votos_partidos_segundo_turno` preservam as unidades dos equivalentes do primeiro turno e são publicadas em CSV e Parquet. Não há QE, QP ou média no segundo turno. O manifesto `second_round_results` em `metrics.json` registra cobertura, URLs, hashes SHA-256, horários e a conciliação BR = UFs + exterior. Filtre turno e cargo antes de agregar votos; use Presidente para participação eleitoral.
+
 - Preferem-se os CSVs nacionais `BRASIL` para evitar duplicar registros ao juntar arquivos por UF.
 - Cada fonte é verificada por presença do arquivo esperado, cabeçalho e SHA-256. CSVs são convertidos de Latin-1 para UTF-8 antes do dbt.
 - CPF, CNPJ, e-mail, título eleitoral, identificador de eleitor, URLs individuais de redes sociais e número de processo não entram nos arquivos públicos.

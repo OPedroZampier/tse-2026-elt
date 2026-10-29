@@ -1,5 +1,17 @@
 version: 2
 models:
+  - name: resultados_segundo_turno
+    description: "Official runoff totals by territory and office; BR excluded."
+    columns:
+      - name: chave_resultado
+        data_tests: [not_null, unique]
+  - name: votos_candidatos_segundo_turno
+    description: "Official runoff candidate votes and outcome."
+    columns:
+      - name: id_candidato
+        data_tests: [not_null]
+  - name: votos_partidos_segundo_turno
+    description: "Official runoff party votes; no legend votes."
   - name: resultados_primeiro_turno
     description: "Official first-round totals; duplicate BR aggregate excluded."
     columns:

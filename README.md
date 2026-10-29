@@ -4,7 +4,7 @@
 
 This repository turns the Brazilian Superior Electoral Court's 2026 open data into analysis-ready CSV and Parquet files. A scheduled pipeline downloads the official archives, checks their contents, builds tables in DuckDB with dbt, and validates the exports with Great Expectations.
 
-The catalog has 14 official archives plus 137 first-round result JSON documents and produces 27 tables across candidacies, declared assets, the electorate, party accounts, campaign finance, registered polls and election results. The [source map](docs/SOURCES.md) names every input and output.
+The catalog has 14 official archives plus first- and second-round result JSON documents and produces 30 tables across candidacies, declared assets, the electorate, party accounts, campaign finance, registered polls and election results. The [source map](docs/SOURCES.md) names every input and output.
 
 ## First-round results
 
@@ -23,6 +23,7 @@ python -m pip install -r requirements.txt
 python -m pytest -q
 python -m pipeline.ingest --refresh
 python -m pipeline.results
+python -m pipeline.runoff
 dbt build --project-dir . --profiles-dir .
 python -m pipeline.export
 ```
@@ -54,3 +55,9 @@ Without those settings, Kaggle publication is not active. The [GitLab CI file](.
 ## Data source and scope
 
 The source is the [TSE Open Data Portal](https://dadosabertos.tse.jus.br/). See the [source map](docs/SOURCES.md) for the 2026 dataset pages, selected files, and exclusions. TSE data can change; treat each export as a dated snapshot, not a final election result. Credit the TSE when redistributing derived data and check the terms on the official dataset pages.
+## Second-round update
+
+The dataset now includes both rounds. Three additional tables provide second-round territory/office totals, candidate votes and party votes (`resultados_segundo_turno`, `votos_candidatos_segundo_turno`, `votos_partidos_segundo_turno`), in CSV and Parquet. Existing first-round tables are unchanged in structure. Run `python -m pipeline.runoff` after `python -m pipeline.results`, before dbt and export. The workflow performs both steps automatically.
+
+Presidential coverage includes all 27 states/DF and abroad (ZZ). Governor coverage is derived from the latest finalized first-round results, not from a fixed list. National presidential totals are checked against states plus abroad and excluded from published rows. Both rounds have source URLs, SHA-256 hashes and extraction times in `metrics.json`. Filter a single round and office before summing votes. Electoral quotas and QP/averages remain first-round-only. These are state-level snapshots, not municipality or polling-station results.
+

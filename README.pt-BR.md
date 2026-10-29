@@ -8,7 +8,7 @@ Este repositório transforma os dados abertos de 2026 do Tribunal Superior Eleit
 
 `TSE CDN → ZIP/CSV bruto → DuckDB + dbt → Great Expectations → CSV/Parquet → Kaggle`
 
-O catálogo usa 14 pacotes oficiais e 137 documentos JSON de resultados do primeiro turno. Os modelos geram 27 tabelas, mantendo as bases anteriores e acrescentando resultados eleitorais. O [mapa das fontes](docs/SOURCES.md) relaciona cada entrada ao seu produto.
+O catálogo usa 14 pacotes oficiais e documentos JSON de resultados dos dois turnos. Os modelos geram 30 tabelas, mantendo as bases anteriores e acrescentando resultados eleitorais. O [mapa das fontes](docs/SOURCES.md) relaciona cada entrada ao seu produto.
 
 ## Resultados do primeiro turno
 
@@ -26,6 +26,7 @@ python -m pip install -r requirements.txt
 python -m pytest -q
 python -m pipeline.ingest --refresh
 python -m pipeline.results
+python -m pipeline.runoff
 dbt build --project-dir . --profiles-dir .
 python -m pipeline.export
 ```
@@ -60,3 +61,9 @@ Sem essas configurações, a publicação no Kaggle não está ativa. O arquivo 
 ## Fonte
 
 Os arquivos vêm do [Portal de Dados Abertos do TSE](https://dadosabertos.tse.jus.br/): [Candidatos 2026](https://dadosabertos.tse.jus.br/dataset/candidatos-2026), [Eleitorado 2026](https://dadosabertos.tse.jus.br/dataset/eleitorado-2026) e [Contas eleitorais 2026](https://dadosabertos.tse.jus.br/dataset/prestacao-de-contas-eleitorais-2026), entre outras bases. O [mapa das fontes](docs/SOURCES.md) reúne os arquivos selecionados e o que ficou fora do produto. Os dados podem mudar: cada exportação é um retrato datado, não um resultado definitivo da eleição. Credite o TSE ao redistribuir dados derivados e confira as condições nas páginas oficiais.
+## Atualização do segundo turno
+
+O dataset agora inclui os dois turnos. Três tabelas adicionais trazem totais por território/cargo, votos por candidato e votos por partido do segundo turno (`resultados_segundo_turno`, `votos_candidatos_segundo_turno`, `votos_partidos_segundo_turno`), em CSV e Parquet. A estrutura das tabelas do primeiro turno foi preservada. Execute `python -m pipeline.runoff` após `python -m pipeline.results`, antes do dbt e da exportação. O workflow já executa as duas etapas.
+
+A eleição presidencial cobre as 27 UFs e o exterior (ZZ). As UFs com segundo turno para governador são identificadas nos resultados finalizados do primeiro turno, sem lista fixa. Os totais nacionais presidenciais são conciliados com UFs e exterior e não são publicados como linhas duplicadas. URLs, hashes SHA-256 e horários de extração dos dois turnos ficam em `metrics.json`. Filtre um turno e um cargo antes de somar votos. Quocientes e QP/média continuam restritos ao primeiro turno. Os resultados têm abrangência estadual, não municipal ou por seção.
+

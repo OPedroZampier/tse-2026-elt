@@ -24,7 +24,8 @@ def tasks():
 
 def verify_document(data, task):
     uf, election, cargo = task
-    if (data.get('f') != 'o' or int(data['ele']) != election or int(data['t']) != 1
+    expected_round = 2 if election in (6258, 6260) else 1
+    if (data.get('f') != 'o' or int(data['ele']) != election or int(data['t']) != expected_round
             or data['cdabr'].upper() != uf or len(data['carg']) != 1
             or int(data['carg'][0]['cd']) != cargo):
         raise ValueError(f'Unexpected election/turn/territory/office: {task}')
@@ -53,8 +54,9 @@ def fetch(task, cache):
 def parse(task, data):
     verify_document(data, task)
     uf, election, office = task
-    key = f'{election}-1-{uf}-{office}'
-    common = dict(chave_resultado=key, ano_eleicao=2026, eleicao=election, turno=1,
+    round_number = 2 if election in (6258, 6260) else 1
+    key = f'{election}-{round_number}-{uf}-{office}'
+    common = dict(chave_resultado=key, ano_eleicao=2026, eleicao=election, turno=round_number,
                   uf=uf, codigo_cargo=office, cargo=CARGOS[office],
                   data_geracao=data['dg'], hora_geracao=data['hg'])
     s, e, v = data['s'], data['e'], data['v']

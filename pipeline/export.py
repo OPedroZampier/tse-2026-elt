@@ -63,6 +63,12 @@ def main() -> None:
             raise ValueError("First-round source validation failed")
         metrics["first_round_results"] = results
         metrics["result_source_documents"] = results["downloaded_documents"]
+    if any(model.endswith("segundo_turno") for model in models):
+        results = json.loads((args.database.parent / "runoff-sources.json").read_text(encoding="utf-8"))
+        if not results["reconciliation_passed"] or results["downloaded_documents"] != results["expected_documents"]:
+            raise ValueError("Second-round source validation failed")
+        metrics["second_round_results"] = results
+        metrics["result_source_documents"] += results["downloaded_documents"]
     (args.output / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps({
         "source_count": metrics.get("source_count"),
