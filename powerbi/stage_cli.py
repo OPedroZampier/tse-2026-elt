@@ -1,6 +1,7 @@
 """Run the private staging integration without activating its manifest."""
 from datetime import datetime, timezone
 import argparse
+import json
 import os
 from pathlib import Path
 
@@ -22,6 +23,11 @@ def main():
     receipt = result['receipt']
     if not receipt['remote_content_verified'] or result['manifest_updated'] or result['model_refresh_started']:
         raise RuntimeError('Unexpected private staging result')
+    # Keep the verified item IDs and checksums available for an eventual
+    # promotion in the same job. Never upload this receipt as a public artifact.
+    receipt_path = args.output / 'staging-receipt.json'
+    with receipt_path.open('x', encoding='utf-8') as target:
+        json.dump(receipt, target, ensure_ascii=False, indent=2)
     print(f"Private staging verified: {receipt['datasets']} datasets, {receipt['parts']} parts. "
           'No manifest or Power BI changes were made.')
 
