@@ -1,0 +1,39 @@
+name: Power BI private staging end-to-end test
+on:
+  push:
+    branches: [powerbi-private-staging]
+    paths: [.github/workflows/powerbi-staging-test-once.yml]
+permissions:
+  contents: read
+concurrency:
+  group: tse-onedrive-refresh-token
+  cancel-in-progress: false
+jobs:
+  stage:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install and test
+        run: |
+          pip install -r requirements.txt pynacl==1.6.2
+          python -m pytest -q
+      - name: Collect TSE sources
+        run: |
+          python -m pipeline.ingest --refresh
+          python -m pipeline.results
+          python -m pipeline.runoff
+      - name: Build and validate models
+        run: |
+          dbt build --project-dir . --profiles-dir .
+          python -m pipeline.export
+      - name: Stage and verify without activating
+        env:
+          TSE_ONEDRIVE_REFRESH_TOKEN: ${{ secrets.TSE_ONEDRIVE_REFRESH_TOKEN }}
+          TSE_GITHUB_SECRETS_TOKEN: ${{ secrets.TSE_GITHUB_SECRETS_TOKEN }}
+        run: python powerbi/stage_cli.py --repo . --collected work --output "$RUNNER_TEMP/tse-powerbi-staging"
