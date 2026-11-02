@@ -1,0 +1,47 @@
+name: Power BI weekly refresh candidate
+
+on:
+  workflow_run:
+    workflows: [TSE 2026 ELT]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tse-onedrive-refresh-token
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      (github.event.workflow_run.event == 'schedule' || github.event.workflow_run.event == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install and test
+        run: |
+          pip install -r requirements.txt pynacl==1.6.2
+          python -m pytest -q
+      - name: Collect and validate TSE sources
+        run: |
+          python -m pipeline.ingest --refresh
+          python -m pipeline.results
+          python -m pipeline.runoff
+          dbt build --project-dir . --profiles-dir .
+          python -m pipeline.export
+      - name: Stage, verify and activate with private backup
+        env:
+          TSE_ONEDRIVE_REFRESH_TOKEN: ${{ secrets.TSE_ONEDRIVE_REFRESH_TOKEN }}
+          TSE_GITHUB_SECRETS_TOKEN: ${{ secrets.TSE_GITHUB_SECRETS_TOKEN }}
+        run: python powerbi/weekly_activation.py --repo . --collected work --output "$RUNNER_TEMP/tse-weekly"
