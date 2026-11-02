@@ -34,6 +34,7 @@ class FakeGraph:
 
 def setup(tmp_path, monkeypatch):
     monkeypatch.setattr(module, 'verify_receipt', lambda *_: None)
+    monkeypatch.setattr(module, 'save_remote_backup', lambda *_: 'backup-id')
     (tmp_path / 'assembly-audit.json').write_text(json.dumps({'datasets': {'A': {}}}))
     reference = tmp_path / 'reference.json'
     reference.write_text(json.dumps({'batch_id': 'old', 'status': 'ready', 'datasets': {}}))
@@ -65,3 +66,39 @@ def test_changed_manifest_prevents_switch(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match='differs'):
         module.activate(tmp_path, reference, receipt, tmp_path / 'backup.json', graph)
     assert not any(method in ('PUT', 'POST') for method, _, _ in graph.calls)
+
+
+def test_failed_remote_backup_prevents_switch(tmp_path, monkeypatch):
+    reference, receipt, old = setup(tmp_path, monkeypatch)
+    graph = FakeGraph(old)
+    def fail_backup(*_):
+        raise ValueError('backup failed')
+    monkeypatch.setattr(module, 'save_remote_backup', fail_backup)
+    with pytest.raises(ValueError, match='backup failed'):
+        module.activate(tmp_path, reference, receipt, tmp_path / 'backup.json', graph)
+    assert (tmp_path / 'backup.json').read_bytes() == old
+    assert not any(method in ('PUT', 'POST') for method, _, _ in graph.calls)
+
+
+def test_remote_backup_checks_batch_and_roundtrip():
+    class BackupGraph:
+        API = 'https://graph.microsoft.com/v1.0'
+        def __init__(self):
+            self.data = None
+        def _request(self, method, url, **kwargs):
+            if method == 'GET':
+                return Response({'id': 'batch', 'folder': {}})
+            assert method == 'PUT' and url.endswith('/manifest.json:/content')
+            self.data = kwargs['data']
+            return Response({'id': 'backup', 'name': 'manifest.json', 'size': len(self.data)})
+        def create_folder(self, parent, name):
+            assert (parent, name) == ('batch', 'previous_manifest')
+            return 'folder'
+        def download(self, item):
+            assert item == 'backup'
+            yield self.data
+    graph = BackupGraph()
+    receipt = {'batch_id': '20261031T225800Z', 'remote_batch_id': 'batch'}
+    assert module.save_remote_backup(graph, receipt, b'old manifest') == 'backup'
+    with pytest.raises(ValueError, match='batch folder'):
+        module.save_remote_backup(graph, {**receipt, 'remote_batch_id': 'other'}, b'old')
