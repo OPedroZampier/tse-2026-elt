@@ -7,6 +7,23 @@ from verify_onedrive_receipt import verify_receipt
 
 PROJECT = 'TSE-2026-Automacao-Privado'
 
+def save_remote_backup(graph, receipt, content):
+    """Store and reread the old manifest inside a new private batch folder."""
+    api = graph.API
+    path = '/'.join((PROJECT, 'batches', receipt['batch_id']))
+    batch = graph._request('GET', f'{api}/me/drive/root:/{quote(path, safe="/")}').json()
+    if not batch.get('id') or batch['id'] != receipt.get('remote_batch_id') or 'folder' not in batch:
+        raise ValueError('Remote batch folder differs from the verified receipt')
+    folder = graph.create_folder(batch['id'], 'previous_manifest')
+    url = f'{api}/me/drive/items/{quote(folder, safe="")}:/manifest.json:/content'
+    item = graph._request('PUT', url, data=content, headers={'Content-Type': 'application/json'}).json()
+    if not item.get('id') or item.get('name') != 'manifest.json' or item.get('size') != len(content):
+        raise ValueError('Remote backup metadata mismatch')
+    if b''.join(graph.download(item['id'])) != content:
+        raise ValueError('Remote backup content mismatch')
+    return item['id']
+
+
 def checked_upload_url(url):
     parsed = urlparse(url)
     host = (parsed.hostname or '').lower()
@@ -44,6 +61,7 @@ def activate(root: Path, reference: Path, receipt_path: Path, backup: Path, grap
         raise ValueError('Live manifest differs from expected baseline; no change made')
     with backup.open('xb') as f:
         f.write(old_data)
+    backup_id = save_remote_backup(graph, receipt, old_data)
     candidate = dict(expected_old)
     candidate.update(batch_id=receipt['batch_id'], status='ready', migration_snapshot=False,
                      datasets=audit['datasets'])
