@@ -86,4 +86,5 @@ def activate(root: Path, reference: Path, receipt_path: Path, backup: Path, grap
     if actual != content:
         raise ValueError('Manifest verification failed; inspect remote state before retrying')
     return {'batch_id': receipt['batch_id'], 'remote_files_verified': len(receipt['verified_files']),
-            'manifest_updated': True, 'model_refresh_started': False}
+            'manifest_updated': True, 'model_refresh_started': False,
+            'remote_backup_verified': bool(backup_id)}
